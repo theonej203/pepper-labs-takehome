@@ -4,12 +4,17 @@ import { Plus, Search, X } from "lucide-react";
 import { fetchProducts, fetchCategories } from "@/lib/api";
 import type { Product, Category } from "@/types";
 import ProductCard from "@/components/ProductCard";
+import LoadingState from "@/components/LoadingState";
+import ErrorState from "@/components/ErrorState";
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState<number | undefined>();
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [retryCount, setRetryCount] = useState(0);
 
   const hasFilters = Boolean(search || categoryId);
 
@@ -21,13 +26,31 @@ export default function ProductsPage() {
       .catch(() => {});
   }, []);
 
-  // Fetch products when filters change
+  // Fetch products when filters change or the user retries.
   useEffect(() => {
+    // Reset the visible request state before each API call.
+    setIsLoading(true);
+    setError("");
+
     fetchProducts({ search: search || undefined, category_id: categoryId })
-      .then((r) => r.json())
-      .then(setProducts)
-      .catch(() => {});
-  }, [search, categoryId]);
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error("Unable to load products.");
+        }
+        // Store successful results so the product grid can render them.
+        setProducts(await response.json());
+      })
+      .catch((requestError: unknown) => {
+        // Keep failures separate from a successful empty result.
+        setProducts([]);
+        setError(
+          requestError instanceof Error
+            ? requestError.message
+            : "Unable to load products."
+        );
+      })
+      .finally(() => setIsLoading(false));
+  }, [search, categoryId, retryCount]);
 
   const clearFilters = () => {
     setSearch("");
@@ -94,13 +117,23 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      {/* Result count */}
-      <p className="mb-4 text-sm text-muted-foreground">
-        {products.length} result{products.length !== 1 ? "s" : ""} found
-      </p>
+      {/* Show loading, error, empty, or populated states in that order. */}
+      {isLoading ? (
+        <LoadingState />
+      ) : error ? (
+        <ErrorState
+          message={error}
+          onRetry={() => setRetryCount((count) => count + 1)}
+        />
+      ) : (
+        <>
+          {/* Result count */}
+          <p className="mb-4 text-sm text-muted-foreground">
+            {products.length} result{products.length !== 1 ? "s" : ""} found
+          </p>
 
-      {/* Product grid — 5 columns on xl like original CatalogGrid */}
-      {products.length === 0 ? (
+          {/* Product grid — 5 columns on xl like original CatalogGrid */}
+          {products.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
           <p className="text-lg font-medium">No products found</p>
           <p className="mt-1 text-sm">Try adjusting your search or filters.</p>
@@ -111,6 +144,8 @@ export default function ProductsPage() {
             <ProductCard key={p.id} product={p} />
           ))}
         </div>
+      )}
+        </>
       )}
     </div>
   );

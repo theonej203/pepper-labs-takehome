@@ -40,6 +40,8 @@ used the code \backend\src\routes\products.ts:61-65 to see the problem clearly
 
 ### Task 4
 
+Added 2 components frontend\src\components\ErrorState.tsx and frontend\src\components\LoadingState.tsx. Separating the state components from the main page felt like a better idea as we can reuse the component for the Categories as well.
+
 ### Task 5
 
 ---
