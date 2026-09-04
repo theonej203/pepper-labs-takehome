@@ -107,16 +107,110 @@ router.get("/:id", (req, res) => {
  *   ]
  * }
  */
-router.post("/", (_req, res) => {
-  // TODO: Implement product creation
-  // 1. Validate required fields (name is required, variants array must have at least one entry)
-  // 2. Validate each variant (sku required + unique, price_cents >= 0, inventory_count >= 0)
-  // 3. Insert product and variants inside a transaction
-  // 4. Return the created product with its variants
-  res.status(501).json({
-    error: "Not implemented",
-    hint: "Implement product creation with validation and a database transaction",
-  });
+router.post("/", (req, res) => {
+  // Extract and normalize the incoming product data.
+  const payload = req.body ?? {};
+
+  const name = typeof payload.name === "string" ? payload.name.trim() : "";
+  const variants = Array.isArray(payload.variants) ? payload.variants : [];
+
+  // Validate the required product and variant structure.
+  if (!name) {
+    return res.status(400).json({ error: "Product name is required." });
+  }
+
+  if (variants.length === 0) {
+    return res.status(400).json({ error: "At least one variant is required." });
+  }
+
+  const cleanedVariants = variants.map((variant: Record<string, unknown>) => ({
+    sku: typeof variant.sku === "string" ? variant.sku.trim() : "",
+    name: typeof variant.name === "string" ? variant.name.trim() : "",
+    price_cents: Number(variant.price_cents ?? 0),
+    inventory_count: Number(variant.inventory_count ?? 0),
+  }));
+
+  // Validate each normalized variant before writing to the database.
+  for (const variant of cleanedVariants) {
+    if (!variant.sku) {
+      return res.status(400).json({ error: "Every variant must include a SKU." });
+    }
+    if (variant.price_cents < 0) {
+      return res.status(400).json({ error: "Variant price_cents must be >= 0." });
+    }
+    if (variant.inventory_count < 0) {
+      return res.status(400).json({ error: "Variant inventory_count must be >= 0." });
+    }
+  }
+
+  const skus = cleanedVariants.map((v: { sku: string }) => v.sku);
+  const existing = db
+    .prepare(
+      `SELECT sku FROM variants WHERE sku IN (${skus.map(() => "?").join(",")})`
+    )
+    .all(...skus) as { sku: string }[];
+
+  // Reject SKUs that are already assigned to another variant.
+  if (existing.length > 0) {
+    return res.status(409).json({
+      error: `Duplicate SKU(s): ${existing.map((v: { sku: string }) => v.sku).join(", ")}`,
+    });
+  }
+
+  try {
+    // Insert the product and all variants atomically.
+    const productId = db.transaction(() => {
+      const result = db
+        .prepare(
+          `INSERT INTO products (name, description, category_id, status, created_at, updated_at)
+           VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))`
+        )
+        .run(
+          name,
+          typeof payload.description === "string" ? payload.description : null,
+          payload.category_id ?? null,
+          payload.status ?? "active"
+        );
+
+      const newProductId = Number(result.lastInsertRowid);
+
+      const insertVariant = db.prepare(
+        `INSERT INTO variants (product_id, sku, name, price_cents, inventory_count, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))`
+      );
+
+      for (const variant of cleanedVariants) {
+        insertVariant.run(
+          newProductId,
+          variant.sku,
+          variant.name,
+          variant.price_cents,
+          variant.inventory_count
+        );
+      }
+
+      return newProductId;
+    })();
+
+    // Read the inserted records back for the API response.
+    const product = db
+      .prepare(
+        `SELECT p.*, c.name AS category_name
+         FROM products p
+         LEFT JOIN categories c ON p.category_id = c.id
+         WHERE p.id = ?`
+      )
+      .get(productId) as Record<string, unknown>;
+
+    const insertedVariants = db
+      .prepare(`SELECT * FROM variants WHERE product_id = ? ORDER BY created_at ASC`)
+      .all(productId);
+
+    res.status(201).json({ ...product, variants: insertedVariants });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    res.status(500).json({ error: message });
+  }
 });
 
 /**

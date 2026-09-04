@@ -23,6 +23,9 @@ Check off what you finished:
 _Briefly describe the approach you took for each task. Mention any trade-offs you made or alternative approaches you considered._
 
 ### Task 1
+Nothing much going on for this tasks, the task description is straight forward to me with not much variations. Though I did kept the price unit as cent for simpler implementation and don't have to worry about floating point number for the front end.
+
+I did also done some imput validations as well.
 
 ### Task 2
 
