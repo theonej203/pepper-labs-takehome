@@ -28,6 +28,9 @@ Nothing much going on for this tasks, the task description is straight forward t
 I did also done some imput validations as well.
 
 ### Task 2
+This is also a straight forward task, of getting the product variants from the database and modifying the data. I did consider a small problem of two clients trying to update the same info and if updating one info should change the other. I decided on just implementing a simple PUT approach where the other client need to refresh.
+
+Also did some input validation
 
 ### Task 3
 
