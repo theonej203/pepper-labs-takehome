@@ -34,6 +34,9 @@ router.get("/", (req, res) => {
 
     const conditions: string[] = [];
     const params: unknown[] = [];
+    
+    // exclude deleted products
+    conditions.push("p.deleted_at IS NULL");
 
     if (search) {
       conditions.push("(p.name LIKE ? OR p.description LIKE ?)");
@@ -52,6 +55,15 @@ router.get("/", (req, res) => {
     query += " GROUP BY p.id ORDER BY p.created_at DESC";
 
     const products = db.prepare(query).all(...params);
+
+    // logging the following to see what's going on for task 3
+
+    // const products = db.prepare(query).all(...params) as Record<string, unknown>[];
+    // products.forEach((product: Record<string, unknown>, index: number) => {
+    //   console.log(`GET /api/products item ${index + 1}:`, product);
+    //   console.log(`GET /api/products item ${index + 1} attributes:`, Object.entries(product));
+    // });
+
     res.json(products);
   } catch (err: unknown) {
     // FIXME: sends plain text error — should this be JSON to match other responses?

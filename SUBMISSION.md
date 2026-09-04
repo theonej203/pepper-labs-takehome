@@ -34,6 +34,10 @@ Also did some input validation
 
 ### Task 3
 
+Deleted some entries to see the non-null `deleted_at` column. I just added a condition for the query to omit all those entries. There might be a future use case where we do want to see the deleted products.
+
+used the code \backend\src\routes\products.ts:61-65 to see the problem clearly
+
 ### Task 4
 
 ### Task 5
