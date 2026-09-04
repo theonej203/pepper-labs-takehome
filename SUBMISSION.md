@@ -46,6 +46,12 @@ Added 2 components frontend\src\components\ErrorState.tsx and frontend\src\compo
 
 Nothing much is needed for Task 5, since I've added the checks as I was developing. I did found a mismatch between required fields for TASK1 which was fixed.
 
+### Bonus Task A
+
+For this task, I added a deleting state to the front end that will block the button from being clicked again. I feel like this is more efficient than checking if the delete request was sent or not.
+
+
+
 ---
 
 ## What I'd improve with more time

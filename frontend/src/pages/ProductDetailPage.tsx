@@ -14,6 +14,7 @@ export default function ProductDetailPage() {
   const [editInventory, setEditInventory] = useState("");
   const [editError, setEditError] = useState("");
   const [isSavingVariant, setIsSavingVariant] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Load the product and its variants for the detail view.
   useEffect(() => {
@@ -24,15 +25,19 @@ export default function ProductDetailPage() {
       .catch(console.error);
   }, [id]);
 
-  // Delete handler — sends soft-delete request.
-  // FIXME: The button does not disable while the request is in flight,
-  //        so rapid clicks can send multiple DELETE requests.
+  // Delete handler — prevents duplicate DELETE requests while the delete is in flight.
   const handleDelete = async () => {
-    if (!id) return;
-    if (!window.confirm("Are you sure you want to delete this product?"))
-      return;
-    await deleteProduct(Number(id));
-    navigate("/products");
+    if (!id || isDeleting) return;
+    if (!window.confirm("Are you sure you want to delete this product?")) return;
+
+    setIsDeleting(true);
+
+    try {
+      await deleteProduct(Number(id));
+      navigate("/products");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   // Copy the selected variant values into the editor.
@@ -151,10 +156,11 @@ export default function ProductDetailPage() {
 
           <button
             onClick={handleDelete}
-            className="inline-flex items-center gap-1.5 rounded-md border border-destructive/30 bg-background px-3 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
+            disabled={isDeleting}
+            className="inline-flex items-center gap-1.5 rounded-md border border-destructive/30 bg-background px-3 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Trash2 className="h-4 w-4" />
-            Delete
+            {isDeleting ? "Deleting..." : "Delete"}
           </button>
         </div>
       </div>
