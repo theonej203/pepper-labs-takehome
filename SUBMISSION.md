@@ -44,6 +44,8 @@ Added 2 components frontend\src\components\ErrorState.tsx and frontend\src\compo
 
 ### Task 5
 
+Nothing much is needed for Task 5, since I've added the checks as I was developing. I did found a mismatch between required fields for TASK1 which was fixed.
+
 ---
 
 ## What I'd improve with more time
