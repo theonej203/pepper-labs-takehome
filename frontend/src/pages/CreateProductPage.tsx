@@ -42,9 +42,9 @@ export default function CreateProductPage() {
       .catch(() => setCategories([]));
   }, []);
 
-  // Save button is only enabled once a name and at least one complete variant exist.
+  // Save button is enabled once a product name exists and at least one variant has a SKU.
   const canSubmit = useMemo(
-    () => name.trim().length > 0 && variants.some((v) => v.sku.trim() && v.name.trim()),
+    () => name.trim().length > 0 && variants.some((v) => v.sku.trim()),
     [name, variants]
   );
 
@@ -85,8 +85,8 @@ export default function CreateProductPage() {
       return;
     }
 
-    if (cleanedVariants.length === 0 || cleanedVariants.every((v) => !v.sku || !v.name)) {
-      setError("Add at least one variant with a SKU and name.");
+    if (cleanedVariants.length === 0 || cleanedVariants.every((v) => !v.sku)) {
+      setError("Add at least one variant with a SKU.");
       return;
     }
 
