@@ -66,9 +66,8 @@ router.get("/", (req, res) => {
 
     res.json(products);
   } catch (err: unknown) {
-    // FIXME: sends plain text error — should this be JSON to match other responses?
     const message = err instanceof Error ? err.message : "Unknown error";
-    res.status(500).send(message);
+    res.status(500).json({ error: message });
   }
 });
 
@@ -100,7 +99,7 @@ router.get("/:id", (req, res) => {
     res.json({ ...product, variants });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
-    res.status(500).send(message);
+    res.status(500).json({ error: message });
   }
 });
 
@@ -264,7 +263,7 @@ router.put("/:id", (req, res) => {
     res.json(updated);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
-    res.status(500).send(message);
+    res.status(500).json({ error: message });
   }
 });
 
@@ -280,8 +279,7 @@ router.delete("/:id", (req, res) => {
     .get(id) as Record<string, unknown> | undefined;
 
   if (!product) {
-    // FIXME: Returns plain text — not JSON like other error responses
-    return res.status(404).send("Product not found");
+    return res.status(404).json({ error: "Product not found" });
   }
 
   db.prepare(
